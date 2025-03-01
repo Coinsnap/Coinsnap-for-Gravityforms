@@ -62,9 +62,9 @@ class CoinsnapGF extends GFPaymentAddOn {
             try {
                 
                 $webhookExists = $this->webhookExists(
-                    $this->getApiKey(),
                     $this->getStoreId(),
-                        $this->get_webhook_url()
+                    $this->getApiKey(),
+                    $this->get_webhook_url()
                 );
 
                 if($webhookExists) {
@@ -422,40 +422,46 @@ class CoinsnapGF extends GFPaymentAddOn {
 
         $this->log_debug("coinsnap webhook : ".$notify_json);                
         $notify_ar = json_decode($notify_json, true);
-        $invoice_id = $notify_ar['invoiceId'];
+        
+        if(isset($notify_ar['invoiceId'])){
+            
+            $invoice_id = $notify_ar['invoiceId'];
 
-        try {
-            $client = new \Coinsnap\Client\Invoice( $this->getApiUrl(), $this->getApiKey() );			
-            $csinvoice = $client->getInvoice($this->getStoreId(), $invoice_id);
-            $status = $csinvoice->getData()['status'] ;
-            $entry_id = $csinvoice->getData()['orderId'] ;				
-	}
-        catch (\Throwable $e) {													
-            echo "Error";
-            exit;
-	}
-	
-        
-        $entry = GFAPI::get_entry( $entry_id );
-        $feed  = $this->get_payment_feed( $entry );
-        $form   = GFFormsModel::get_form_meta($entry['form_id']);
-        
-        
-        $this->log_debug( __METHOD__ . "(): Entry ID #" . $entry['id'] . " is set to Feed ID #" . $feed['id'] ); 
+            try {
+                $client = new \Coinsnap\Client\Invoice( $this->getApiUrl(), $this->getApiKey() );			
+                $csinvoice = $client->getInvoice($this->getStoreId(), $invoice_id);
+                $status = $csinvoice->getData()['status'] ;
+                $entry_id = $csinvoice->getData()['orderId'] ;				
+            }
+            catch (\Throwable $e) {													
+                echo "Error";
+                exit;
+            }
 
-        $order_status = 'Pending';        
-        
-        if ($status == 'Expired') $order_status = $this->_config['coinsnap_expired_status'];
-        else if ($status == 'Processing') $order_status = $this->_config['coinsnap_processing_status'];
-        else if ($status == 'Settled') $order_status = $this->_config['coinsnap_settled_status'];	
-        
+            $entry = GFAPI::get_entry( $entry_id );
+            $feed  = $this->get_payment_feed( $entry );
+            $form   = GFFormsModel::get_form_meta($entry['form_id']);
 
-        GFAPI::update_entry_property($entry_id, 'payment_status', $order_status);
-        if ($order_status == 'Paid'){                        
-            GFAPI::send_notifications($form, $entry, 'complete_payment');
-            GFAPI::update_entry_property( $entry_id, 'transaction_id', $invoice_id );            
+            $this->log_debug( __METHOD__ . "(): Entry ID #" . $entry['id'] . " is set to Feed ID #" . $feed['id'] ); 
+
+            $order_status = 'Pending';
+            if ($status == 'Expired'){
+                $order_status = $this->_config['coinsnap_expired_status'];
+            }
+            elseif ($status == 'Processing'){
+                $order_status = $this->_config['coinsnap_processing_status'];
+            }
+            elseif ($status == 'Settled'){
+                $order_status = $this->_config['coinsnap_settled_status'];
+            }
+
+            GFAPI::update_entry_property($entry_id, 'payment_status', $order_status);
+            if ($order_status == 'Paid'){                        
+                GFAPI::send_notifications($form, $entry, 'complete_payment');
+                GFAPI::update_entry_property( $entry_id, 'transaction_id', $invoice_id );            
+            }
+            echo "OK";
         }
-        echo "OK";
         exit;
     }
 
@@ -510,10 +516,7 @@ class CoinsnapGF extends GFPaymentAddOn {
             $whClient = new \Coinsnap\Client\Webhook( $this->getApiUrl(), $apiKey );		
             $Webhooks = $whClient->getWebhooks( $storeId );
             
-			
-            
             foreach ($Webhooks as $Webhook){					
-                //self::deleteWebhook($storeId,$apiKey, $Webhook->getData()['id']);
                 if ($Webhook->getData()['url'] == $webhook) return true;	
             }
         }catch (\Throwable $e) {			

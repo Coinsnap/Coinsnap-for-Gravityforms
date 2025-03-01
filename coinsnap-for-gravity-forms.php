@@ -32,6 +32,22 @@ if(!defined('COINSNAP_SERVER_URL')){define( 'COINSNAP_SERVER_URL', 'https://app.
 
 add_action('gform_loaded', array('Coinsnap_GF', 'load'), 5);
 
+add_action('admin_init', 'check_gf_dependency');
+
+function check_gf_dependency(){
+    if (!is_plugin_active('gravityforms/gravityforms.php') || !method_exists( 'GFForms', 'include_payment_addon_framework'  )) {
+        add_action('admin_notices', 'gf_dependency_notice');
+        deactivate_plugins(plugin_basename(__FILE__));
+    }
+}
+    
+function gf_dependency_notice(){?>
+    <div class="notice notice-error">
+        <p><?php echo esc_html_e('Bitcoin payment for Gravity Forms plugin requires Gravity Forms Pro '.COINSNAP_GF_MIN_VERSION.'+ to be installed and activated.','coinsnap-for-gravity-forms');?></p>
+    </div>
+    <?php        
+    }
+
 class Coinsnap_GF {
     public static function load(){
         if ( ! method_exists('GFForms', 'include_payment_addon_framework')) {
