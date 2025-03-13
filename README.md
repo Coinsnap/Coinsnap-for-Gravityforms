@@ -1,8 +1,8 @@
 # Bitcoin payment for Gravity Forms #
-![Coinsnap for Gravity Forms](https://resources.coinsnap.org/products/gravityforms/images/1.png)
+![Coinsnap for Gravity Forms](https://resources.coinsnap.org/products/gravityforms/images/cover.png)
 ## Accept Bitcoin and Lightning Payments with Gravity Forms ##
 
-=== Coinsnap Bitcoin + Lightning payment plug-in 1.0.0 for Gravity Forms ===
+## Coinsnap Bitcoin + Lightning payment plug-in 1.0.0 for Gravity Forms ##
 
 * Contributors: coinsnap
 * Tags: Lightning, Lightning Payment, SATS, Satoshi sats, bitcoin, Wordpress, Gravity, payment gateway, accept bitcoin, bitcoin plugin, bitcoin payment processor, bitcoin e-commerce, Lightning Network, cryptocurrency, lightning payment processor
