@@ -30,7 +30,7 @@ Coinsnap’s Bitcoin payment plugin for Gravity Forms makes it amazingly simple 
 ## Accept Bitcoin payments with Gravity Forms in only 3 steps: ##
 
 * Get your [free Coinsnap account](https://app.coinsnap.io/register) with just your email
-* Install, activate and configure the plugin in your WordPress backend ([see the installation guide](https://coinsnap.io/coinsnap-for-gravity-forrms-installation-guide/))
+* Install, activate and configure the plugin in your WordPress backend ([see the installation guide](https://coinsnap.io/coinsnap-for-gravity-forms-installation-guide/))
 * Create payment forms in Gravity Forms, place them at the appropriate places on your WordPress website and accept Bitcoin payments from your customers
 
 ## Why should you choose the Coinsnap for Gravity Forms plugin? ##
@@ -181,3 +181,22 @@ The Bitcoin + Lightning payment page is now displayed, offering the payer the op
 ![Membership form](https://resources.coinsnap.org/products/gravityforms/images/10.png)
 
 ![QR code on the Bitcoin payment page](https://resources.coinsnap.org/products/gravityforms/images/14.png)
+
+
+## Upgrade Notice ##
+
+Follow updates on plugin's GitHub page:
+[https://github.com/Coinsnap/Coinsnap-for-Gravityforms/](https://github.com/Coinsnap/Coinsnap-for-Gravityforms/)
+
+## Frequently Asked Questions ##
+
+Plugin's page on Coinsnap website: [https://coinsnap.io/coinsnap-for-gravity-forms/](https://coinsnap.io/coinsnap-for-gravity-forms/)
+
+
+## Changelog ##
+
+#### 1.0.0 :: 2025-04-04 ####
+* First public release for testing.
+
+#### 1.0.1 :: 2025-04-29 ####
+* Compatibility with Wordpress 6.8 is tested.

@@ -1,8 +1,8 @@
 === Bitcoin payment for Gravity Forms ===
 Contributors: coinsnap
 Tags: Lightning, SATS, bitcoin, Gravity forms, payment gateway
-Tested up to: 	6.7
-Stable tag: 	1.0.0
+Tested up to: 	6.8
+Stable tag: 	1.0.1
 License:	GPL2
 License URI:	https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -55,7 +55,7 @@ Coinsnap’s Bitcoin payment plugin for Gravity Forms makes it amazingly simple 
 
 * Coinsnap for Gravity Forms Demo Page: [https://gravity.coinsnap.org/](https://gravity.coinsnap.org/)
 * Blog Article: [https://coinsnap.io/coinsnap-for-gravity-forms/](https://coinsnap.io/coinsnap-for-gravity-forms/)
-* WordPress: [https://wordpress.org/plugins/coinsnap-for-gravityforms/](https://wordpress.org/plugins/coinsnap-for-gravityforms/)
+* WordPress: [https://wordpress.org/plugins/coinsnap-for-gravity-forms/](https://wordpress.org/plugins/coinsnap-for-gravity-forms/)
 * GitHub: [https://github.com/Coinsnap/Coinsnap-for-Gravityforms](https://github.com/Coinsnap/Coinsnap-for-Gravityforms)
 
 == Documentation: ==
@@ -178,5 +178,9 @@ Plugin's page on Coinsnap website: [https://coinsnap.io/coinsnap-for-gravity-for
 14. QR code on the Bitcoin payment page
 
 == Changelog ==
-= 1.0 :: 2024-03-03 =
+
+= 1.0.0 :: 2025-04-04 =
 * First public release for testing.
+
+= 1.0.1 :: 2025-04-29 =
+* Compatibility with Wordpress 6.8 is tested.
