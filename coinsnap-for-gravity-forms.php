@@ -80,7 +80,3 @@ add_filter('request', function($vars) {
     }
     return $vars;
 });
-/*
-function gf_coinsnap() {
-    return CoinsnapGF::get_instance();
-}*/

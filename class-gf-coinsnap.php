@@ -226,7 +226,10 @@ class CoinsnapGF extends GFPaymentAddOn {
                 $response['message'] = $webhook ? $_message_connected.' ('.$connectionData.')' : $_message_disconnected.' (Webhook)';
             }
             catch (\Exception $e) {
-                $response['message'] =  __('Gravity Forms: API connection is not established', 'coinsnap-for-gravity-forms');
+                $response = [
+                        'result' => false,
+                        'message' => __('Gravity Forms: API connection is not established', 'coinsnap-for-gravity-forms')
+                ];
             }
 
             $this->sendJsonResponse($response);
@@ -293,12 +296,12 @@ class CoinsnapGF extends GFPaymentAddOn {
     
     function coinsnapgf_amount_validation( $amount, $currency ) {
         $client =new \Coinsnap\Client\Invoice($this->getApiUrl(), $this->getApiKey());
-                    
-        $_provider = $this->get_payment_provider();
-        if($_provider === 'btcpay'){
-
-                $store = new \Coinsnap\Client\Store($this->getApiUrl(), $this->getApiKey());
-                
+        $store = new \Coinsnap\Client\Store($this->getApiUrl(), $this->getApiKey());
+        
+        try {
+            $this_store = $store->getStore($this->getStoreId());
+            $_provider = $this->get_payment_provider();
+            if($_provider === 'btcpay'){
                 try {
                     $storePaymentMethods = $store->getStorePaymentMethods($this->getStoreId());
 
@@ -324,9 +327,14 @@ class CoinsnapGF extends GFPaymentAddOn {
                     $errorMessage = __( 'API connection is not established', 'coinsnap-for-gravity-forms' );
                     $checkInvoice = array('result' => false,'error' => esc_html($errorMessage));
                 }
+            }
+            else {
+                $checkInvoice = $client->checkPaymentData((float)$amount,strtoupper( $currency ));
+            }
         }
-        else {
-            $checkInvoice = $client->checkPaymentData((float)$amount,strtoupper( $currency ));
+        catch (\Throwable $e){
+            $errorMessage = __( 'API connection is not established', 'coinsnap-for-gravity-forms' );
+            $checkInvoice = array('result' => false,'error' => esc_html($errorMessage));
         }
         return $checkInvoice;
     }
@@ -630,37 +638,49 @@ class CoinsnapGF extends GFPaymentAddOn {
             GFAPI::update_entry_property($entry['id'], 'payment_status', 'Pending');
             $return_mode = '2';
 
-            $return_url = $this->return_url($form['id'], $entry['id']) . "&rm={$return_mode}";              
-
-            $invoice_no =  $entry['id'];		
-
-
-
+            $return_url = $this->return_url($form['id'], $entry['id']) . "&rm={$return_mode}";
+            $invoice_no =  $entry['id'];
+            
             $metadata = [];
             $metadata['orderNumber'] = $invoice_no;
             $metadata['customerName'] = $buyerName;
 
             $camount = \Coinsnap\Util\PreciseNumber::parseFloat($amount,2);
+            
+            // Handle Sats-mode because BTCPay does not understand SAT as a currency we need to change to BTC and adjust the amount.
+            if ($currency === 'SATS' && $_provider === 'btcpay') {
+                $currency = 'BTC';
+                $amountBTC = bcdiv($camount->__toString(), '100000000', 8);
+                $camount = \Coinsnap\Util\PreciseNumber::parseString($amountBTC);
+            }
 
             $redirectAutomatically = $this->_config['coinsnap_autoredirect'] ;
             $walletMessage = '';
+            
+            try {
 
-            $csinvoice = $client->createInvoice(
-                $this->getStoreId(),  
-                strtoupper( $currency ),
-                $camount,
-                $invoice_no,
-                $buyerEmail,
-                $buyerName, 
-                $return_url,
-                COINSNAPGF_REFERRAL_CODE,     
-                $metadata,
-                $redirectAutomatically,
-                $walletMessage
-            );	
+                $csinvoice = $client->createInvoice(
+                    $this->getStoreId(),  
+                    strtoupper( $currency ),
+                    $camount,
+                    $invoice_no,
+                    $buyerEmail,
+                    $buyerName, 
+                    $return_url,
+                    COINSNAPGF_REFERRAL_CODE,     
+                    $metadata,
+                    $redirectAutomatically,
+                    $walletMessage
+                );	
 
-            $payurl = $csinvoice->getData()['checkoutLink'] ;
-            return $payurl;
+                $payurl = $csinvoice->getData()['checkoutLink'] ;
+                return $payurl;
+                
+            }
+            catch (\Throwable $e){
+                $errorMessage = __( 'API connection is not established', 'coinsnap-for-ninja-forms' );
+                return false;
+            }
         }
         else {
             if($checkInvoice['error'] === 'currencyError'){
