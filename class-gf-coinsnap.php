@@ -678,7 +678,7 @@ class CoinsnapGF extends GFPaymentAddOn {
                 
             }
             catch (\Throwable $e){
-                $errorMessage = __( 'API connection is not established', 'coinsnap-for-ninja-forms' );
+                $errorMessage = __( 'API connection is not established', 'coinsnap-for-gravity-forms' );
                 return false;
             }
         }
