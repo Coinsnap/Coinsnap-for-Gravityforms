@@ -3,7 +3,7 @@
 if (!defined( 'ABSPATH' )){
     exit;
 }
-
+use Coinsnap\Client\Webhook;
 GFForms::include_payment_addon_framework();
 
 class CoinsnapGF extends GFPaymentAddOn {
@@ -15,7 +15,7 @@ class CoinsnapGF extends GFPaymentAddOn {
     protected $_path = 'gravityforms_coinsnap/coinsnap.php';
     protected $_full_path = __FILE__;
     protected $_url = 'https://www.gravityforms.com';
-    protected $_title = 'Coinsnap for Gravity Forms';
+    protected $_title = 'Bitcoin payment for Gravity Forms';
     protected $_short_title = 'Coinsnap';
     protected $_supports_callbacks = true;
     protected $_capabilities = array('gravityforms_coinsnap', 'gravityforms_coinsnap_uninstall');    
@@ -40,14 +40,14 @@ class CoinsnapGF extends GFPaymentAddOn {
             add_action('gform_validation', [ $this, 'coinsnapgf_payment_validation']);
         }
         
-        // Adding template redirect handling for btcpay-settings-callback.
+        // Adding template redirect handling for coinsnap-for-gravity-forms-btcpay-settings-callback.
         add_action( 'template_redirect', function(){
     
             global $wp_query;
             $notice = new \Coinsnap\Util\Notice();
             
-            // Only continue on a btcpay-settings-callback request.    
-            if (!isset( $wp_query->query_vars['btcpay-settings-callback'])) {
+            // Only continue on a coinsnap-for-gravity-forms-btcpay-settings-callback request.    
+            if (!isset( $wp_query->query_vars['coinsnap-for-gravity-forms-btcpay-settings-callback'])) {
                 return;
             }
             
@@ -60,7 +60,7 @@ class CoinsnapGF extends GFPaymentAddOn {
             
             $client = new \Coinsnap\Client\Store($btcpay_server_url,$btcpay_api_key);
             if (count($client->getStores()) < 1) {
-                $messageAbort = __('Error on verifiying redirected API Key with stored BTCPay Server url. Aborting API wizard. Please try again or continue with manual setup.', 'coinsnap-for-gravity-forms');
+                $messageAbort = __('Error on verifying redirected API Key with stored BTCPay Server url. Aborting API wizard. Please try again or continue with manual setup.', 'coinsnap-for-gravity-forms');
                 $notice->addNotice('error', $messageAbort);
                 wp_redirect($CoinsnapBTCPaySettingsUrl);
             }
@@ -90,7 +90,7 @@ class CoinsnapGF extends GFPaymentAddOn {
                     $notice->addNotice('success', __('Successfully received api key and store id from BTCPay Server API. Please finish setup by saving this settings form.', 'coinsnap-for-gravity-forms'));
 
                     // Register a webhook.
-                    if ($this->registerWebhook( $apiData->getStoreID(), $apiData->getApiKey(), $this->get_webhook_url())) {
+                    if ($this->registerWebhook( $btcpay_server_url, $apiData->getApiKey(), $apiData->getStoreID() )) {
                         $messageWebhookSuccess = __( 'Successfully registered a new webhook on BTCPay Server.', 'coinsnap-for-gravity-forms' );
                         $notice->addNotice('success', $messageWebhookSuccess);
                     }
@@ -140,7 +140,11 @@ class CoinsnapGF extends GFPaymentAddOn {
     public function connectionCheckScript(){
         wp_register_style('coinsnapgf-backend-style', plugins_url('assets/css/coinsnapgf-backend-style.css',__FILE__),array(),COINSNAPGF_VERSION);
         wp_enqueue_style('coinsnapgf-backend-style');
-        wp_enqueue_script('coinsnapgf-admin-fields', plugin_dir_url( __FILE__ ) . 'assets/js/adminFields.js',[ 'jquery' ],COINSNAPGF_VERSION,true);
+        
+        if('gravityforms_coinsnap' === filter_input(INPUT_GET,'subview',FILTER_SANITIZE_FULL_SPECIAL_CHARS)){
+            wp_enqueue_script('coinsnapgf-admin-fields', plugin_dir_url( __FILE__ ) . 'assets/js/adminFields.js',[ 'jquery' ],COINSNAPGF_VERSION,true);
+        }
+        
         wp_enqueue_script('coinsnapgf-connection-check', plugin_dir_url( __FILE__ ) . 'assets/js/connectionCheck.js',[ 'jquery' ],COINSNAPGF_VERSION,true);
         wp_localize_script('coinsnapgf-connection-check', 'coinsnapgf_ajax', array(
           'ajax_url' => admin_url('admin-ajax.php'),
@@ -154,8 +158,8 @@ class CoinsnapGF extends GFPaymentAddOn {
         
         if(empty($this->getApiUrl()) || empty($this->getApiKey())){
             $response = [
-                    'result' => false,
-                    'message' => __('Gravity Forms: empty gateway URL or API Key', 'coinsnap-for-gravity-forms')
+                'result' => false,
+                'message' => __('Gravity Forms: empty gateway URL or API Key', 'coinsnap-for-gravity-forms')
             ];
             $this->sendJsonResponse($response);
         }
@@ -214,14 +218,14 @@ class CoinsnapGF extends GFPaymentAddOn {
                     $this->sendJsonResponse($response);
                 }
                 
-                $webhookExists = $this->webhookExists($this->getStoreId(), $this->getApiKey(), $this->get_webhook_url());
+                $webhookExists = $this->webhookExists( $this->getApiUrl(), $this->getApiKey(), $this->getStoreId() );
 
                 if($webhookExists) {
                     $response = ['result' => true,'message' => $_message_connected.' ('.$connectionData.')'];
                     $this->sendJsonResponse($response);
                 }
 
-                $webhook = $this->registerWebhook( $this->getStoreId(), $this->getApiKey(), $this->get_webhook_url());
+                $webhook = $this->registerWebhook( $this->getApiUrl(), $this->getApiKey(), $this->getStoreId() );
                 $response['result'] = (bool)$webhook;
                 $response['message'] = $webhook ? $_message_connected.' ('.$connectionData.')' : $_message_disconnected.' (Webhook)';
             }
@@ -276,7 +280,7 @@ class CoinsnapGF extends GFPaymentAddOn {
                     'GravityForms',
                     true,
                     true,
-                    home_url('?btcpay-settings-callback'),
+                    home_url('?coinsnap-for-gravity-forms-btcpay-settings-callback'),
                     null
 		);
 
@@ -627,8 +631,8 @@ class CoinsnapGF extends GFPaymentAddOn {
             $webhook_url = $this->get_webhook_url();		
 
 
-            if (! $this->webhookExists($this->getStoreId(), $this->getApiKey(), $webhook_url)){
-                if (! $this->registerWebhook($this->getStoreId(), $this->getApiKey(),$webhook_url)) {                
+            if (! $this->webhookExists($this->getApiUrl(),$this->getApiKey(), $this->getStoreId())){
+                if (! $this->registerWebhook($this->getApiUrl(),$this->getApiKey(), $this->getStoreId())) {                
                     echo (esc_html__('unable to set Webhook url.', 'coinsnap-for-gravity-forms'));
                     exit;
                 }
@@ -763,26 +767,55 @@ class CoinsnapGF extends GFPaymentAddOn {
 
     public function process_webhook(){
      
-        $notify_json = file_get_contents('php://input');        
+        try {
+            // First check if we have any input
+            $rawPostData = file_get_contents("php://input");
+            $this->log_debug("coinsnap webhook : ".$rawPostData);
+            if (!$rawPostData) {
+                    wp_die('No raw post data received', '', ['response' => 400]);
+            }
 
-        $this->log_debug("coinsnap webhook : ".$notify_json);                
-        $notify_ar = json_decode($notify_json, true);
-        
-        if(isset($notify_ar['invoiceId'])){
+            // Get headers and check for signature
+            $headers = getallheaders();
+            $signature = null; $payloadKey = null;
+            $_provider = ($this->get_payment_provider() === 'btcpay')? 'btcpay' : 'coinsnap';
+                
+            foreach ($headers as $key => $value) {
+                if ((strtolower($key) === 'x-coinsnap-sig' && $_provider === 'coinsnap') || (strtolower($key) === 'btcpay-sig' && $_provider === 'btcpay')) {
+                        $signature = $value;
+                        $payloadKey = strtolower($key);
+                }
+            }
+
+            // Handle missing or invalid signature
+            if (!isset($signature)) {
+                wp_die('Authentication required', '', ['response' => 401]);
+            }
+
+            // Validate the signature
+            $webhook = get_option( 'gravityformsaddon_coinsnap_webhook');
+            if (!Webhook::isIncomingWebhookRequestValid($rawPostData, $signature, $webhook['secret'])) {
+                wp_die('Invalid authentication signature', '', ['response' => 401]);
+            }
+
+            // Parse the JSON payload
+            $postData = json_decode($rawPostData, false, 512, JSON_THROW_ON_ERROR);
+
+            if (!isset($postData->invoiceId)) {
+                wp_die('No Coinsnap invoiceId provided', '', ['response' => 400]);
+            }
             
-            $invoice_id = $notify_ar['invoiceId'];
-
-            try {
-                $client = new \Coinsnap\Client\Invoice( $this->getApiUrl(), $this->getApiKey() );			
-                $csinvoice = $client->getInvoice($this->getStoreId(), $invoice_id);
-                $status = $csinvoice->getData()['status'] ;
-                $entry_id = $csinvoice->getData()['orderId'] ;				
+            $invoice_id = $postData->invoiceId;
+            
+            if(strpos($invoice_id,'test_') !== false){
+                wp_die('Successful webhook test', '', ['response' => 200]);
             }
-            catch (\Throwable $e) {													
-                echo "Error";
-                exit;
-            }
-
+            
+            $client = new \Coinsnap\Client\Invoice( $this->getApiUrl(), $this->getApiKey() );			
+            $csinvoice = $client->getInvoice($this->getStoreId(), $invoice_id);
+            $status = $csinvoice->getData()['status'] ;
+            $entry_id = $csinvoice->getData()['orderId'] ;
+            
             $entry = GFAPI::get_entry( $entry_id );
             $feed  = $this->get_payment_feed( $entry );
             $form   = GFFormsModel::get_form_meta($entry['form_id']);
@@ -806,8 +839,14 @@ class CoinsnapGF extends GFPaymentAddOn {
                 GFAPI::update_entry_property( $entry_id, 'transaction_id', $invoice_id );            
             }
             echo "OK";
+            exit;
         }
-        exit;
+        catch (JsonException $e) {
+            wp_die('Invalid JSON payload', '', ['response' => 400]);
+        }
+        catch (\Throwable $e) {
+            wp_die('Internal server error', '', ['response' => 500]);
+        }
     }
 
     
@@ -855,54 +894,87 @@ class CoinsnapGF extends GFPaymentAddOn {
         return ($this->get_payment_provider() === 'btcpay')? $this->_config['btcpay_server_url'] : COINSNAP_SERVER_URL;
     }	
 
-    public function webhookExists(string $storeId, string $apiKey, string $webhook): bool {	
-        try {		
-            $whClient = new \Coinsnap\Client\Webhook( $this->getApiUrl(), $apiKey );		
-            $Webhooks = $whClient->getWebhooks( $storeId );
+    public function webhookExists(string $apiUrl, string $apiKey, string $storeId): bool {
+	$whClient = new Webhook( $apiUrl, $apiKey );
+	if ($storedWebhook = get_option( 'gravityformsaddon_coinsnap_webhook')) {
             
-            foreach ($Webhooks as $Webhook){					
-                if ($Webhook->getData()['url'] == $webhook) return true;	
+            try {
+		$existingWebhook = $whClient->getWebhook( $storeId, $storedWebhook['id'] );
+                
+                if($existingWebhook->getData()['id'] === $storedWebhook['id'] && strpos( $existingWebhook->getData()['url'], $storedWebhook['url'] ) !== false){
+                    return true;
+		}
             }
-        }catch (\Throwable $e) {			
-            return false;
+            catch (\Throwable $e) {
+		$errorMessage = __( 'Error fetching existing Webhook. Message: ', 'coinsnap-for-gravity-forms' ).$e->getMessage();
+            }
+	}
+        try {
+            $storeWebhooks = $whClient->getWebhooks( $storeId );
+            foreach($storeWebhooks as $webhook){
+                if(strpos( $webhook->getData()['url'], $this->get_webhook_url() ) !== false){
+                    $whClient->deleteWebhook( $storeId, $webhook->getData()['id'] );
+                }
+            }
         }
-    
-        return false;
+        catch (\Throwable $e) {
+            $errorMessage = sprintf( 
+                /* translators: 1: StoreId */
+                __( 'Error fetching webhooks for store ID %1$s Message: ', 'coinsnap-for-gravity-forms' ), $storeId).$e->getMessage();
+        }
+        
+	return false;
     }
-    public  function registerWebhook(string $storeId, string $apiKey, string $webhook): bool {	
-        try {			
-            $whClient = new \Coinsnap\Client\Webhook($this->getApiUrl(), $apiKey);
-            
+    
+    public function registerWebhook(string $apiUrl, $apiKey, $storeId){
+        try {
+            $whClient = new Webhook( $apiUrl, $apiKey );
             $webhook = $whClient->createWebhook(
                 $storeId,   //$storeId
-                $webhook, //$url
-                self::WEBHOOK_EVENTS,   
-                null    //$secret
-            );	
-            
-            return true;
-        } catch (\Throwable $e) {
-            return false;	
-        }
+		$this->get_webhook_url(), //$url
+		self::WEBHOOK_EVENTS,   //$specificEvents
+		null    //$secret
+            );
 
-        return false;
+            update_option(
+                'gravityformsaddon_coinsnap_webhook',
+                [
+                    'id' => $webhook->getData()['id'],
+                    'secret' => $webhook->getData()['secret'],
+                    'url' => $webhook->getData()['url']
+                ]
+            );
+
+            return $webhook;
+                        
+	}
+        catch (\Throwable $e) {
+            $errorMessage = __('Error creating a new webhook on Coinsnap instance: ', 'coinsnap-for-gravity-forms' ) . $e->getMessage();
+            throw new PaymentGatewayException(esc_html($errorMessage));
+	}
+
+	return null;
     }
 
-    public function deleteWebhook(string $storeId, string $apiKey, string $webhookid): bool {	    
-        
-        try {			
-            $whClient = new \Coinsnap\Client\Webhook($this->getApiUrl(), $apiKey);
-            
-            $webhook = $whClient->deleteWebhook(
-                $storeId,   //$storeId
-                $webhookid, //$url			
-            );					
-            return true;
-        } catch (\Throwable $e) {
-            
-            return false;	
+    public function updateWebhook(string $webhookId,string $webhookUrl,string $secret,bool $enabled,bool $automaticRedelivery,?array $events): ?WebhookResult {
+        try {
+            $whClient = new Webhook($this->getApiUrl(), $this->getApiKey() );
+            $webhook = $whClient->updateWebhook(
+                $this->getStoreId(),
+                $webhookUrl,
+		$webhookId,
+		$events ?? self::WEBHOOK_EVENTS,
+		$enabled,
+		$automaticRedelivery,
+		$secret
+            );
+            return $webhook;
         }
-    }    
+        catch (\Throwable $e) {
+            $errorMessage = __('Error updating existing Webhook from Coinsnap: ', 'coinsnap-for-gravity-forms' ) . $e->getMessage();
+            throw new PaymentGatewayException(esc_html($errorMessage));
+	}
+    }
 
 
     public function uninstall() {

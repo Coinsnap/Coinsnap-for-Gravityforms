@@ -24,7 +24,7 @@ jQuery(document).ready(function ($) {
         }
     }
     
-    function isValidUrl(serverUrl) {
+    function isValidGravityUrl(serverUrl) {
         try {
             const url = new URL(serverUrl);
             if (url.protocol !== 'https:' && url.protocol !== 'http:') {
@@ -41,7 +41,7 @@ jQuery(document).ready(function ($) {
     $('.btcpay-apikey-link').click(function(e) {
         e.preventDefault();
         const host = $('#btcpay_server_url').val();
-	if (isValidUrl(host)) {
+	if (isValidGravityUrl(host)) {
             let data = {
                 'action': 'btcpay_server_apiurl_handler',
                 'host': host,

@@ -2,7 +2,7 @@
 Contributors: coinsnap
 Tags: Lightning, SATS, bitcoin, Gravity forms, payment gateway
 Tested up to: 	6.8
-Stable tag: 	1.1.0
+Stable tag: 	1.2.0
 License:	GPL2
 License URI:	https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -191,3 +191,8 @@ Plugin's page on Coinsnap website: [https://coinsnap.io/coinsnap-for-gravity-for
 * Update: Prevented redirect to BTCPay server if payment amount is less than 0.000005869 BTC (0.50 EUR) for onchain payments, 0.000001 BTC (1 SAT) for Lightning payment or currency is not supported.
 * Update: BTCPay setup wizard is added in BTCPay server settings.
 * Update: Minimum order amount is added to connection status notice.
+
+= 1.2.0 :: 2025-06-24 =
+* Update: Unique name for BTCPay server setup Wizard return URL is set.
+* Update: Webhook data is saved as setting in Wordpress database.
+* Update: Added secret string check in webhook payload process.
