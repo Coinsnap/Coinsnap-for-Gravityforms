@@ -7,7 +7,7 @@
 * Requires at least: 5.2
 * Tested up to: 6.7
 * Requires PHP: 7.4
-* Stable tag: 1.2.0
+* Stable tag: 1.2.1
 * License:	GPL2
 * License URI:	https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -212,3 +212,6 @@ Plugin's page on Coinsnap website: [https://coinsnap.io/coinsnap-for-gravity-for
 * Update: Unique name for BTCPay server setup Wizard return URL is set.
 * Update: Webhook data is saved as setting in Wordpress database.
 * Update: Added secret string check in webhook payload process.
+
+#### 1.2.1 :: 2025-07-11
+* Updated notices indication.

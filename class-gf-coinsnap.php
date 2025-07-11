@@ -68,10 +68,12 @@ class CoinsnapGF extends GFPaymentAddOn {
             // Data does get submitted with url-encoded payload, so parse $_POST here.
             if (!empty($_POST) || wp_verify_nonce(filter_input(INPUT_POST,'wp_nonce',FILTER_SANITIZE_FULL_SPECIAL_CHARS),'-1')) {
                 $data['apiKey'] = filter_input(INPUT_POST,'apiKey',FILTER_SANITIZE_FULL_SPECIAL_CHARS) ?? null;
-                $permissions = (isset($_POST['permissions']) && is_array($_POST['permissions']))? $_POST['permissions'] : null;
-                    if (isset($permissions)) {
+                if(isset($_POST['permissions'])){
+                    $permissions = array_map('sanitize_text_field', wp_unslash($_POST['permissions']));
+                    if(is_array($permissions)){
                         foreach ($permissions as $key => $value) {
-                        $data['permissions'][$key] = sanitize_text_field($permissions[$key] ?? null);
+                            $data['permissions'][$key] = sanitize_text_field($permissions[$key] ?? null);
+                        }
                     }
                 }
             }
@@ -954,26 +956,6 @@ class CoinsnapGF extends GFPaymentAddOn {
 	}
 
 	return null;
-    }
-
-    public function updateWebhook(string $webhookId,string $webhookUrl,string $secret,bool $enabled,bool $automaticRedelivery,?array $events): ?WebhookResult {
-        try {
-            $whClient = new Webhook($this->getApiUrl(), $this->getApiKey() );
-            $webhook = $whClient->updateWebhook(
-                $this->getStoreId(),
-                $webhookUrl,
-		$webhookId,
-		$events ?? self::WEBHOOK_EVENTS,
-		$enabled,
-		$automaticRedelivery,
-		$secret
-            );
-            return $webhook;
-        }
-        catch (\Throwable $e) {
-            $errorMessage = __('Error updating existing Webhook from Coinsnap: ', 'coinsnap-for-gravity-forms' ) . $e->getMessage();
-            throw new PaymentGatewayException(esc_html($errorMessage));
-	}
     }
 
 
