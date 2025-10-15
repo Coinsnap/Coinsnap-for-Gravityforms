@@ -24,7 +24,8 @@ class CoinsnapGF extends GFPaymentAddOn {
     protected $_capabilities_uninstall = 'gravityforms_coinsnap_uninstall';
     protected $_enable_rg_autoupgrade = false;
     protected $_config= [];
-    public const WEBHOOK_EVENTS = ['New','Expired','Settled','Processing'];	 
+    public const COINSNAP_WEBHOOK_EVENTS = ['New','Expired','Settled','Processing'];
+    public const BTCPAY_WEBHOOK_EVENTS = ['InvoiceCreated','InvoiceExpired','InvoiceSettled','InvoiceProcessing'];	 
     
     public function __construct()
     {
@@ -51,9 +52,13 @@ class CoinsnapGF extends GFPaymentAddOn {
                 return;
             }
             
+            if(!isset($wp_query->query_vars['coinsnap-for-gravity-btcpay-nonce']) || !wp_verify_nonce($wp_query->query_vars['coinsnap-for-gravity-btcpay-nonce'],'coinsnapgf-btcpay-nonce')){
+                return;
+            }
+            
+            
+            
             $CoinsnapBTCPaySettingsUrl = admin_url('admin.php?page=gf_settings&subview=gravityforms_coinsnap');
-
-            $rawData = file_get_contents('php://input');
 
             $btcpay_server_url = $this->_config['btcpay_server_url'];
             $btcpay_api_key  = filter_input(INPUT_POST,'apiKey',FILTER_SANITIZE_FULL_SPECIAL_CHARS);
@@ -66,7 +71,7 @@ class CoinsnapGF extends GFPaymentAddOn {
             }
 
             // Data does get submitted with url-encoded payload, so parse $_POST here.
-            if (!empty($_POST) || wp_verify_nonce(filter_input(INPUT_POST,'wp_nonce',FILTER_SANITIZE_FULL_SPECIAL_CHARS),'-1')) {
+            if (!empty($_POST)) {
                 $data['apiKey'] = filter_input(INPUT_POST,'apiKey',FILTER_SANITIZE_FULL_SPECIAL_CHARS) ?? null;
                 if(isset($_POST['permissions'])){
                     $permissions = array_map('sanitize_text_field', wp_unslash($_POST['permissions']));
@@ -548,6 +553,15 @@ class CoinsnapGF extends GFPaymentAddOn {
                         )
                     ),   
                     array(
+                        'name'     => 'coinsnap_returnurl',
+                        'label'    => __('Return URL after payment', 'coinsnap-for-gravity-forms'),
+                        'type'     => 'text',
+                        'class'    => 'medium',                
+                        'required' => false,
+                        'description'  => __( 'After successful payment (default URL if blank)', 'coinsnap-for-gravity-forms' ),
+                        'tooltip'  => __('Custom return URL after successful payment (default URL if blank)','coinsnap-for-gravity-forms'),
+                    ),
+                    array(
                         'name'     => 'coinsnap_expired_status',
                         'label'    => __('Expired Status', 'coinsnap-for-gravity-forms'),
                         'type'     => 'select',
@@ -619,11 +633,11 @@ class CoinsnapGF extends GFPaymentAddOn {
         }
         
         $payment_amount = $submission_data['payment_amount'];
-        $currency  = rgar( $entry, 'currency' );
+        $currency  = strtoupper(rgar( $entry, 'currency' ));
         
         $client =new \Coinsnap\Client\Invoice($this->getApiUrl(), $this->getApiKey());
         
-        $checkInvoice = $this->coinsnapgf_amount_validation($payment_amount,strtoupper( $currency ));
+        $checkInvoice = $this->coinsnapgf_amount_validation($payment_amount,$currency);
                 
         if($checkInvoice['result'] === true){
             $amount = round($payment_amount, 2);
@@ -644,21 +658,40 @@ class CoinsnapGF extends GFPaymentAddOn {
             GFAPI::update_entry_property($entry['id'], 'payment_status', 'Pending');
             $return_mode = '2';
 
-            $return_url = $this->return_url($form['id'], $entry['id']) . "&rm={$return_mode}";
+            $return_url = (!empty($this->_config['coinsnap_returnurl']))? $this->_config['coinsnap_returnurl'] : $this->return_url($form['id'], $entry['id']) . "&rm={$return_mode}";
             $invoice_no =  $entry['id'];
             
             $metadata = [];
             $metadata['orderNumber'] = $invoice_no;
             $metadata['customerName'] = $buyerName;
 
-            $camount = \Coinsnap\Util\PreciseNumber::parseFloat($amount,2);
-            
-            // Handle Sats-mode because BTCPay does not understand SAT as a currency we need to change to BTC and adjust the amount.
-            if ($currency === 'SATS' && $_provider === 'btcpay') {
-                $currency = 'BTC';
-                $amountBTC = bcdiv($camount->__toString(), '100000000', 8);
-                $camount = \Coinsnap\Util\PreciseNumber::parseString($amountBTC);
+            if($this->get_payment_provider() === 'btcpay') {
+                $metadata['orderId'] = $invoice_no;
             }
+            
+            if($this->get_payment_provider() === 'btcpay' && $currency !== 'BTC'){
+                $store = new \Coinsnap\Client\Store($this->getApiUrl(), $this->getApiKey());
+                $btcpayCurrencies = $store -> getStoreCurrenciesRates($this->getStoreId(),array($currency));
+                $isCurrency = true;
+                if(!isset($btcpayCurrencies['result']['error']) && count($btcpayCurrencies['result']['currencies'])>0){
+                        if(!isset($btcpayCurrencies['result']['currencies']['BTC_'.$currency])){
+                            $isCurrency = false;
+                        }
+                }
+                else {
+                    $isCurrency = false;
+                }
+                    
+                // Handle currencies non-supported by BTCPay Server, we need to change them BTC and adjust the amount.
+                if( !$isCurrency ){
+                        $currency = 'BTC';
+                        $rate = 1/$checkInvoice['rate'];
+                        $amountBTC = bcdiv(strval($amount), strval($rate), 8);
+                        $amount = (float)$amountBTC;
+                }
+            }
+                
+            $camount = ($currency === 'BTC')? \Coinsnap\Util\PreciseNumber::parseFloat($amount,8) : \Coinsnap\Util\PreciseNumber::parseFloat($amount,2);
 
             $redirectAutomatically = $this->_config['coinsnap_autoredirect'] ;
             $walletMessage = '';
@@ -717,8 +750,6 @@ class CoinsnapGF extends GFPaymentAddOn {
         return add_query_arg('gf_coinsnap_return', base64_encode($ids_query), $pageURL);
     }
 
-        
-
     public function delay_post($is_disabled, $form, $entry)
     {
         $feed            = $this->get_payment_feed($entry);
@@ -730,8 +761,6 @@ class CoinsnapGF extends GFPaymentAddOn {
         return ! rgempty('delayPost', $feed['meta']);
     }
 
-    
-
     public function delay_notification($is_disabled, $notification, $form, $entry)
     {
         $feed            = $this->get_payment_feed($entry);
@@ -739,15 +768,9 @@ class CoinsnapGF extends GFPaymentAddOn {
         if ( ! $feed || empty($submission_data['payment_amount'])) {
             return $is_disabled;
         }
-        $selected_notifications = is_array(rgar($feed['meta'], 'selectedNotifications')) ? rgar(
-            $feed['meta'],
-            'selectedNotifications'
-        ) : array();
+        $selected_notifications = is_array(rgar($feed['meta'], 'selectedNotifications')) ? rgar($feed['meta'],'selectedNotifications') : array();
 
-        return isset($feed['meta']['delayNotification']) && in_array(
-            $notification['id'],
-            $selected_notifications
-        ) ? true : $is_disabled;
+        return isset($feed['meta']['delayNotification']) && in_array( $notification['id'], $selected_notifications) ? true : $is_disabled;
     }
 
     public function get_payment_feed($entry, $form = false)
@@ -767,25 +790,32 @@ class CoinsnapGF extends GFPaymentAddOn {
         return ! empty($feed) ? $feed : false;
     }
 
+    public function is_callback_valid(): bool {
+        if (rgget('page') != 'gf_coinsnap_webhook') {
+            return false;
+        }
+        $this->process_webhook();
+
+        return true;
+    }  
+    
     public function process_webhook(){
      
         try {
             // First check if we have any input
             $rawPostData = file_get_contents("php://input");
-            $this->log_debug("coinsnap webhook : ".$rawPostData);
             if (!$rawPostData) {
-                    wp_die('No raw post data received', '', ['response' => 400]);
+                wp_die('No raw post data received', '', ['response' => 400]);
             }
 
             // Get headers and check for signature
             $headers = getallheaders();
             $signature = null; $payloadKey = null;
-            $_provider = ($this->get_payment_provider() === 'btcpay')? 'btcpay' : 'coinsnap';
                 
             foreach ($headers as $key => $value) {
-                if ((strtolower($key) === 'x-coinsnap-sig' && $_provider === 'coinsnap') || (strtolower($key) === 'btcpay-sig' && $_provider === 'btcpay')) {
-                        $signature = $value;
-                        $payloadKey = strtolower($key);
+                if (strtolower($key) === 'x-coinsnap-sig' || strtolower($key) === 'btcpay-sig') {
+                    $signature = $value;
+                    $payloadKey = strtolower($key);
                 }
             }
 
@@ -799,67 +829,70 @@ class CoinsnapGF extends GFPaymentAddOn {
             if (!Webhook::isIncomingWebhookRequestValid($rawPostData, $signature, $webhook['secret'])) {
                 wp_die('Invalid authentication signature', '', ['response' => 401]);
             }
+            
+            try {
+                // Parse the JSON payload
+                $postData = json_decode($rawPostData, false, 512, JSON_THROW_ON_ERROR);
 
-            // Parse the JSON payload
-            $postData = json_decode($rawPostData, false, 512, JSON_THROW_ON_ERROR);
+                if (!isset($postData->invoiceId)) {
+                    wp_die('No Coinsnap invoiceId provided', '', ['response' => 400]);
+                }
 
-            if (!isset($postData->invoiceId)) {
-                wp_die('No Coinsnap invoiceId provided', '', ['response' => 400]);
+                if(strpos($postData->invoiceId,'test_') !== false){
+                    wp_die('Successful webhook test', '', ['response' => 200]);
+                }
+
+                $invoice_id = esc_html($postData->invoiceId);
+                
+                $client = new \Coinsnap\Client\Invoice( $this->getApiUrl(), $this->getApiKey() );			
+                $csinvoice = $client->getInvoice($this->getStoreId(), $invoice_id);
+                $status = $csinvoice->getData()['status'] ;
+                $entry_id = ($this->get_payment_provider() === 'btcpay')? $csinvoice->getData()['metadata']['orderId'] : $csinvoice->getData()['orderId'];
+
+                $entry = GFAPI::get_entry( $entry_id );
+                $feed  = $this->get_payment_feed( $entry );
+                $form   = GFFormsModel::get_form_meta($entry['form_id']);
+
+                $this->log_debug( __METHOD__ . "(): Entry ID #" . $entry['id'] . " is set to Feed ID #" . $feed['id'] ); 
+
+                $order_status = 'Pending';
+                
+                switch($status){
+                    case 'Expired':
+                    case 'InvoiceExpired':
+                        $order_status = $this->_config['coinsnap_expired_status'];
+                        break;
+                    
+                    case 'Processing':
+                    case 'InvoiceProcessing':
+                        $order_status = $this->_config['coinsnap_processing_status'];
+                        break;
+                    
+                    case 'Settled':
+                    case 'InvoiceSettled':
+                        $order_status = $this->_config['coinsnap_settled_status'];
+                        break;
+                }
+
+                GFAPI::update_entry_property($entry_id, 'payment_status', $order_status);
+                if ($order_status == 'Paid'){                        
+                    GFAPI::send_notifications($form, $entry, 'complete_payment');
+                    GFAPI::update_entry_property( $entry_id, 'transaction_id', $invoice_id );            
+                }
+                echo "OK";
+                exit;
             }
             
-            $invoice_id = $postData->invoiceId;
-            
-            if(strpos($invoice_id,'test_') !== false){
-                wp_die('Successful webhook test', '', ['response' => 200]);
+            catch (JsonException $e) {
+                wp_die('Invalid JSON payload', '', ['response' => 400]);
             }
-            
-            $client = new \Coinsnap\Client\Invoice( $this->getApiUrl(), $this->getApiKey() );			
-            $csinvoice = $client->getInvoice($this->getStoreId(), $invoice_id);
-            $status = $csinvoice->getData()['status'] ;
-            $entry_id = $csinvoice->getData()['orderId'] ;
-            
-            $entry = GFAPI::get_entry( $entry_id );
-            $feed  = $this->get_payment_feed( $entry );
-            $form   = GFFormsModel::get_form_meta($entry['form_id']);
-
-            $this->log_debug( __METHOD__ . "(): Entry ID #" . $entry['id'] . " is set to Feed ID #" . $feed['id'] ); 
-
-            $order_status = 'Pending';
-            if ($status == 'Expired'){
-                $order_status = $this->_config['coinsnap_expired_status'];
-            }
-            elseif ($status == 'Processing'){
-                $order_status = $this->_config['coinsnap_processing_status'];
-            }
-            elseif ($status == 'Settled'){
-                $order_status = $this->_config['coinsnap_settled_status'];
-            }
-
-            GFAPI::update_entry_property($entry_id, 'payment_status', $order_status);
-            if ($order_status == 'Paid'){                        
-                GFAPI::send_notifications($form, $entry, 'complete_payment');
-                GFAPI::update_entry_property( $entry_id, 'transaction_id', $invoice_id );            
-            }
-            echo "OK";
-            exit;
         }
-        catch (JsonException $e) {
-            wp_die('Invalid JSON payload', '', ['response' => 400]);
-        }
+        
         catch (\Throwable $e) {
             wp_die('Internal server error', '', ['response' => 500]);
         }
     }
 
-    
-    public function is_callback_valid(): bool {
-        if (rgget('page') != 'gf_coinsnap_webhook') {
-            return false;
-        }
-        $this->process_webhook();
-
-        return true;
-    }  
     
     public function update_feed_id($old_feed_id, $new_feed_id){
         global $wpdb;
@@ -931,10 +964,11 @@ class CoinsnapGF extends GFPaymentAddOn {
     public function registerWebhook(string $apiUrl, $apiKey, $storeId){
         try {
             $whClient = new Webhook( $apiUrl, $apiKey );
+            $webhook_events = ($this->get_payment_provider() === 'btcpay')? self::BTCPAY_WEBHOOK_EVENTS : self::COINSNAP_WEBHOOK_EVENTS;
             $webhook = $whClient->createWebhook(
                 $storeId,   //$storeId
 		$this->get_webhook_url(), //$url
-		self::WEBHOOK_EVENTS,   //$specificEvents
+		$webhook_events,   //$specificEvents
 		null    //$secret
             );
 

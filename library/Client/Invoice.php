@@ -49,10 +49,9 @@ class Invoice extends AbstractClient{
     
     public function checkPaymentData($amount,$currency,$provider = 'coinsnap',$mode = 'invoice'): array {
         
-        if($provider === 'bitcoin' || $provider === 'lightning'){
-            $btcPayCurrencies = $this->loadExchangeRates();
+        $btcPayCurrencies = $this->loadExchangeRates();
             
-            if(!$btcPayCurrencies['result']){
+        if(!$btcPayCurrencies['result']){
                 return array('result' => false,'error' => $btcPayCurrencies['error'],'min_value' => '');
             }
             
@@ -60,27 +59,30 @@ class Invoice extends AbstractClient{
                 return array('result' => false,'error' => 'currencyError','min_value' => '');
             }
             
-            else {
-                $rate = 1/$btcPayCurrencies['data'][strtolower($currency)]['value'];
-                $min_value_btcpay = ($provider === 'bitcoin')? 0.000005869 : 0.000001;
-                $min_value = $min_value_btcpay/$rate;
+            $rate = 1/$btcPayCurrencies['data'][strtolower($currency)]['value'];
                 
-               if($mode === 'calculation'){
-                    return array('result' => true, 'min_value' => round($min_value,2));
+        
+        if($provider === 'bitcoin' || $provider === 'lightning'){
+            
+            $eurbtc = (isset($btcPayCurrencies['data']['eur']['value']))? 1/$btcPayCurrencies['data']['eur']['value']*0.50 : 0.000005;
+            $min_value_btcpay = ($provider === 'bitcoin')? $eurbtc : 0.0000001;
+            $min_value = $min_value_btcpay/$rate;
+                
+            if($mode === 'calculation'){
+                return array('result' => true, 'min_value' => round($min_value,2),'rate' => $rate);
+            }
+                
+            else {                
+                if(round($amount * $rate * 1000000) < round($min_value_btcpay * 1000000)){
+                    return array('result' => false,'error' => 'amountError','min_value' => round($min_value,2));
                 }
-                
-                else {                
-                    if(round($amount * $rate * 1000000) < round($min_value_btcpay * 1000000)){
-                        return array('result' => false,'error' => 'amountError','min_value' => round($min_value,2));
-                    }
-                    else {
-                        return array('result' => true);
-                    }
+                else {
+                    return array('result' => true,'rate' => $rate);
                 }
             }
         }
         
-        if($provider === 'coinsnap'){
+        if($provider === 'coinsnap' || $provider === 'lightning'){
         
             $coinsnapCurrencies = $this->getCurrencies();
 
@@ -91,13 +93,7 @@ class Invoice extends AbstractClient{
                 return array('result' => false,'error' => 'currencyError','min_value' => '');
             }
             
-            $min_value_array = array(
-                "SATS" => 1,
-                "JPY" => 1,
-                "RUB" => 1,
-                "BTC" => 0.000001
-            );
-            
+            $min_value_array = ["SATS" => 1,"JPY" => 1,"RUB" => 1,"BTC" => 0.000001];
             $min_value = (isset($min_value_array[$currency]))? $min_value_array[$currency] : 0.01;
             
             if($mode === 'calculation'){
@@ -112,7 +108,7 @@ class Invoice extends AbstractClient{
                     return array('result' => false,'error' => 'amountError','min_value' => $min_value);
                 }
                 else {
-                    return array('result' => true);
+                    return array('result' => true,'rate' => $rate);
                 }
             }            
         }
@@ -138,7 +134,7 @@ class Invoice extends AbstractClient{
         // Prepare metadata.
         if(!isset($metaData['orderNumber']) && !empty($orderId)){ $metaData['orderNumber'] = $orderId;}
         if(!isset($metaData['customerName']) && !empty($customerName)){ $metaData['customerName'] = $customerName;}
-
+        
         $body_array = array(
             'amount' => $amount !== null ? $amount->__toString() : null,
             'currency' => $currency,
@@ -148,7 +144,12 @@ class Invoice extends AbstractClient{
             'metadata' => (count($metaData) > 0)? $metaData : null,
             'referralCode' => $referralCode,
             'redirectAutomatically' => $redirectAutomatically,
-            'walletMessage' => $walletMessage
+            'walletMessage' => $walletMessage,
+            'checkout' => [
+                'redirectUrl'           => $redirectUrl,
+                'redirectAutomatically' => $redirectAutomatically,
+                'redirectUrl' => $redirectUrl,
+            ]
         );
 
         $body = wp_json_encode($body_array,JSON_THROW_ON_ERROR);
