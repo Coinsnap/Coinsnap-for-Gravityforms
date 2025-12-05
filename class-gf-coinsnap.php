@@ -221,7 +221,7 @@ class CoinsnapGF extends GFPaymentAddOn {
             try {
                 $this_store = $store->getStore($this->getStoreId());
                 
-                if ($this_store['code'] !== 200) {
+                if ($this_store->getData()['code'] !== 200) {
                     $this->sendJsonResponse($response);
                 }
                 
@@ -310,7 +310,6 @@ class CoinsnapGF extends GFPaymentAddOn {
         $store = new \Coinsnap\Client\Store($this->getApiUrl(), $this->getApiKey());
         
         try {
-            $this_store = $store->getStore($this->getStoreId());
             $_provider = $this->get_payment_provider();
             if($_provider === 'btcpay'){
                 try {

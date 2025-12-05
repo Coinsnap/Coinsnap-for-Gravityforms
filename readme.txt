@@ -1,8 +1,8 @@
 === Bitcoin payment for Gravity Forms ===
 Contributors: coinsnap
 Tags: Lightning, SATS, bitcoin, Gravity forms, payment gateway
-Tested up to: 	6.8
-Stable tag: 	1.3.1
+Tested up to: 	6.9
+Stable tag: 	1.3.2
 License:	GPL2
 License URI:	https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,7 +23,7 @@ Coinsnap’s Bitcoin payment plugin for Gravity Forms makes it amazingly simple 
 == Accept Bitcoin payments with Gravity Forms in only 3 steps: ==
 
 * Get your [free Coinsnap account](https://app.coinsnap.io/register) with just your email
-* Install, activate and configure the plugin in your WordPress backend ([see the installation guide](https://coinsnap.io/coinsnap-for-gravity-forrms-installation-guide/))
+* Install, activate and configure the plugin in your WordPress backend ([see the installation guide](https://coinsnap.io/modules/gravity-forms/gravity-forms-installation-guide/))
 * Create payment forms in Gravity Forms, place them at the appropriate places on your WordPress website and accept Bitcoin payments from your customers
 
 == Why should you choose the Coinsnap for Gravity Forms plugin? ==
@@ -54,16 +54,16 @@ Coinsnap’s Bitcoin payment plugin for Gravity Forms makes it amazingly simple 
 == More information ==
 
 * Coinsnap for Gravity Forms Demo Page: [https://gravity.coinsnap.org/](https://gravity.coinsnap.org/)
-* Blog Article: [https://coinsnap.io/coinsnap-for-gravity-forms/](https://coinsnap.io/coinsnap-for-gravity-forms/)
+* Blog Article: [https://coinsnap.io/modules/gravity-forms/](https://coinsnap.io/modules/gravity-forms/)
 * WordPress: [https://wordpress.org/plugins/coinsnap-for-gravity-forms/](https://wordpress.org/plugins/coinsnap-for-gravity-forms/)
 * GitHub: [https://github.com/Coinsnap/Coinsnap-for-Gravityforms](https://github.com/Coinsnap/Coinsnap-for-Gravityforms)
 
 == Documentation: ==
 
 * [Coinsnap API (1.0) documentation](https://docs.coinsnap.io/)
-* [Frequently Asked Questions](https://coinsnap.io/faq/) 
-* [Terms and Conditions](https://coinsnap.io/general-terms-and-conditions/)
-* [Privacy Policy](https://coinsnap.io/privacy/)
+* [Frequently Asked Questions](https://coinsnap.io/help/coinsnap-faq/) 
+* [Terms and Conditions](https://coinsnap.io/info/general-terms-and-conditions/)
+* [Privacy Policy](https://coinsnap.io/info/privacy-policy/)
 
 
 
@@ -128,7 +128,7 @@ In the Lightning Address field, enter the Lightning address to which the Bitcoin
 A Lightning address is similar to an e-mail address. Lightning payments are forwarded to this Lightning address and paid out. If you don’t have a Lightning address yet, set up a Lightning wallet that will provide you with a Lightning address.
 
 For more information on Lightning addresses and the corresponding Lightning wallet providers, click here:
-https://coinsnap.io/lightning-wallet-mit-lightning-adresse/
+https://coinsnap.io/blog/how-do-i-get-a-lightning-wallet/
 
 ### 3. Connect Coinsnap account with Gravity Forms add-on ###
 
@@ -158,7 +158,7 @@ Follow updates on plugin's GitHub page:
 
 == Frequently Asked Questions ==
 
-Plugin's page on Coinsnap website: [https://coinsnap.io/coinsnap-for-gravity-forms/](https://coinsnap.io/coinsnap-for-gravity-forms/)
+Plugin's page on Coinsnap website: [https://coinsnap.io/modules/gravity-forms/](https://coinsnap.io/modules/gravity-forms/)
 
 == Screenshots ==
 
@@ -210,3 +210,7 @@ Plugin's page on Coinsnap website: [https://coinsnap.io/coinsnap-for-gravity-for
 * Update: Added non-supported by BTCPay server currencies handler on invoice request flow.
 * Update: Added custom redirect after payment page in module settings.
 * Fixed bug in BTCPay server webhook payload flow.
+
+= 1.3.2 :: 2025-12-04 =
+* Updated \Coinsnap\Client\Store::getStore() method data usage.
+* Compatibility with Wordpress 6.9 is tested.
