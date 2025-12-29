@@ -5,9 +5,9 @@
 * Contributors: coinsnap
 * Tags: Lightning, Lightning Payment, SATS, Satoshi sats, bitcoin, Wordpress, Gravity, payment gateway, accept bitcoin, bitcoin plugin, bitcoin payment processor, bitcoin e-commerce, Lightning Network, cryptocurrency, lightning payment processor
 * Requires at least: 5.2
-* Tested up to: 6.7
+* Tested up to: 6.9
 * Requires PHP: 7.4
-* Stable tag: 1.3.1
+* Stable tag: 1.3.3
 * License:	GPL2
 * License URI:	https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -230,3 +230,9 @@ Plugin's page on Coinsnap website: [https://coinsnap.io/modules/gravity-forms/](
 #### 1.3.2 :: 2025-12-04
 * Updated \Coinsnap\Client\Store::getStore() method data usage.
 * Compatibility with Wordpress 6.9 is tested.
+
+#### 1.3.3 :: 2025-12-29
+* Compatibility with Gravity Forms 2.9.24 is tested.
+* Updated PHP files protection.
+* Updated database requests.
+
