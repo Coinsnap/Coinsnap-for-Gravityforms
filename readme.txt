@@ -2,7 +2,7 @@
 Contributors: coinsnap
 Tags: Lightning, SATS, bitcoin, Gravity forms, payment gateway
 Tested up to: 	6.9
-Stable tag: 	1.3.2
+Stable tag: 	1.3.4
 License:	GPL2
 License URI:	https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -214,3 +214,12 @@ Plugin's page on Coinsnap website: [https://coinsnap.io/modules/gravity-forms/](
 = 1.3.2 :: 2025-12-04 =
 * Updated \Coinsnap\Client\Store::getStore() method data usage.
 * Compatibility with Wordpress 6.9 is tested.
+
+= 1.3.3 :: 2025-12-29 =
+* Compatibility with Gravity Forms 2.9.24 is tested.
+* Updated PHP files protection.
+* Updated database requests.
+
+= 1.3.4 :: 2026-03-06 =
+* Updated plugin description.
+* Compatibility with GiveWP 2.9.25 - 2.9.28 is tested.

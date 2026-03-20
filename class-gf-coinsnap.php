@@ -68,6 +68,7 @@ class CoinsnapGF extends GFPaymentAddOn {
                 $messageAbort = __('Error on verifying redirected API Key with stored BTCPay Server url. Aborting API wizard. Please try again or continue with manual setup.', 'coinsnap-for-gravity-forms');
                 $notice->addNotice('error', $messageAbort);
                 wp_redirect($CoinsnapBTCPaySettingsUrl);
+                exit();
             }
 
             // Data does get submitted with url-encoded payload, so parse $_POST here.
@@ -895,21 +896,23 @@ class CoinsnapGF extends GFPaymentAddOn {
     
     public function update_feed_id($old_feed_id, $new_feed_id){
         global $wpdb;
-        $sql = $wpdb->prepare(
+        $wpdb->query(
+            $wpdb->prepare(
             "UPDATE {$wpdb->prefix}rg_lead_meta SET meta_value=%s WHERE meta_key='coinsnap_feed_id' AND meta_value=%s",
             $new_feed_id,
             $old_feed_id
+            )
         );
-        $wpdb->query($sql);
     }
     
     public function update_payment_gateway(){
         global $wpdb;
-        $sql = $wpdb->prepare(
-            "UPDATE {$wpdb->prefix}rg_lead_meta SET meta_value=%s WHERE meta_key='payment_gateway' AND meta_value='coinsnap'",
-            $this->_slug
+        $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE {$wpdb->prefix}rg_lead_meta SET meta_value=%s WHERE meta_key='payment_gateway' AND meta_value='coinsnap'",
+                $this->_slug
+            )     
         );
-        $wpdb->query($sql);
     }
     
     public function get_payment_provider() {
