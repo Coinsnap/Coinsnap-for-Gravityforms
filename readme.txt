@@ -224,7 +224,7 @@ Plugin's page on Coinsnap website: [https://coinsnap.io/modules/gravity-forms/](
 * Updated plugin description.
 * Compatibility with Gravity Forms 2.9.25 - 2.9.28 is tested.
 
-= 1.3.5 :: 2026-04-06 =
+= 1.3.5 :: 2026-04-07 =
 * Updated \Coinsnap\Client\Invoice class.
 * Updated \Coinsnap\Client\Store class.
 * Compatibility with Gravity Forms 2.9.31 is tested.
