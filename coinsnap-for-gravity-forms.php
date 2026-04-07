@@ -3,7 +3,7 @@
  * Plugin Name:     Bitcoin payment for Gravity Forms
  * Plugin URI:      https://coinsnap.io/wp-add-ons/gravity-forms/
  * Description:     With this Bitcoin payment plugin for Gravity Forms you can now offer products, downloads, bookings or get donations in Bitcoin right in your forms!
- * Version:         1.3.4
+ * Version:         1.3.5
  * Author:          Coinsnap
  * Author URI:      https://coinsnap.io/
  * Text Domain:     coinsnap-for-gravity-forms
@@ -12,7 +12,7 @@
  * Tested up to:    6.9
  * Requires at least: 5.2
  * GF requires at least: 1.9.3
- * GF tested up to: 2.9.28
+ * GF tested up to: 2.9.31
  * License:         GPL2
  * License URI:     https://www.gnu.org/licenses/gpl-2.0.html
  *
@@ -25,7 +25,7 @@ if (!defined( 'ABSPATH' )){
 
 if(!defined('COINSNAPGF_PHP_VERSION')){ define( 'COINSNAPGF_PHP_VERSION', '7.4' ); }
 if(!defined('COINSNAPGF_MIN_VERSION')){ define( 'COINSNAPGF_MIN_VERSION', '1.9.3' ); }
-if(!defined('COINSNAPGF_VERSION')){ define( 'COINSNAPGF_VERSION', '1.3.4' ); }
+if(!defined('COINSNAPGF_VERSION')){ define( 'COINSNAPGF_VERSION', '1.3.5' ); }
 if(!defined('COINSNAPGF_REFERRAL_CODE')){define( 'COINSNAPGF_REFERRAL_CODE', 'D19826' );}
 if(!defined('COINSNAPGF_PLUGIN_SLUG')){define( 'COINSNAPGF_PLUGIN_SLUG', 'coinsnap-for-gravity-forms' );}
 if(!defined('COINSNAP_SERVER_URL')){define( 'COINSNAP_SERVER_URL', 'https://app.coinsnap.io' );}
