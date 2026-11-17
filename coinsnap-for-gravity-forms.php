@@ -32,6 +32,14 @@ if(!defined('COINSNAP_SERVER_URL')){define( 'COINSNAP_SERVER_URL', 'https://app.
 if(!defined('COINSNAP_CURRENCIES')){define( 'COINSNAP_CURRENCIES', array("EUR","USD","SATS","BTC","CAD","JPY","GBP","CHF","RUB") );}
 
 add_action('admin_init', 'coinsnapgf_dependency_check');
+
+// From this moment every new invoice is recorded on its entry. Entries from before are paid only
+// during one day after the upgrade, when every invoice opened before it has expired.
+add_action('plugins_loaded', function () {
+    if (!get_option('coinsnapgf_records_since')) {
+        update_option('coinsnapgf_records_since', time(), true);
+    }
+});
 add_action('gform_loaded', array('CoinsnapGForm', 'load'), 5);
 
 function coinsnapgf_dependency_check(){
@@ -56,6 +64,10 @@ class CoinsnapGForm {
             return;
         }
         require_once (plugin_dir_path(__FILE__) . '/library/loader.php');	
+        require_once (plugin_dir_path(__FILE__) . 'includes/BtcpayKey.php');
+        require_once (plugin_dir_path(__FILE__) . 'includes/Webhook/Signature.php');
+        require_once (plugin_dir_path(__FILE__) . 'includes/Webhook/InvoiceDecision.php');
+        require_once (plugin_dir_path(__FILE__) . 'includes/Webhook/WebhookHandler.php');
         require_once('class-gf-coinsnap.php');
 
         GFAddOn::register('CoinsnapGF');
@@ -72,7 +84,6 @@ add_action('init', function() {
 add_filter('request', function($vars) {
     if (isset($vars['coinsnap-for-gravity-forms-btcpay-settings-callback'])) {
         $vars['coinsnap-for-gravity-forms-btcpay-settings-callback'] = true;
-        $vars['coinsnap-for-gravity-btcpay-nonce'] = wp_create_nonce('coinsnapgf-btcpay-nonce');
     }
     return $vars;
 });
