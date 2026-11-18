@@ -335,9 +335,15 @@ class CoinsnapGF extends GFPaymentAddOn {
     }
     
     public function coinsnapgf_payment_validation($validation_result){
-        GFCommon::log_debug( __METHOD__ . '(): running payment amount validation.' );
         $form = $validation_result['form'];
-        $validation_result['is_valid'] = false;
+        // Only forms that pay with Coinsnap. Other forms on the site are left alone.
+        if (!$this->form_has_coinsnap_feed($form)) {
+            return $validation_result;
+        }
+        GFCommon::log_debug( __METHOD__ . '(): running payment amount validation.' );
+        // Never turn another field's failed validation into a pass.
+        $is_valid = !empty($validation_result['is_valid']);
+        $amount_ok = false;
         $currency  = get_option('rg_gforms_currency');
 
         foreach ( $form['fields'] as &$field ) {
@@ -348,7 +354,7 @@ class CoinsnapGF extends GFPaymentAddOn {
                 $checkInvoice = $this->coinsnapgf_amount_validation((float)$amount,strtoupper( $currency ));
                 
                 if($checkInvoice['result'] === true){
-                    $validation_result['is_valid'] = true;
+                    $amount_ok = true;
                 }
                 else {
                     if($checkInvoice['error'] === 'currencyError'){
@@ -369,8 +375,23 @@ class CoinsnapGF extends GFPaymentAddOn {
                 }
             }
         }
+        $validation_result['is_valid'] = $is_valid && $amount_ok;
         $validation_result['form'] = $form;
         return $validation_result;
+    }
+
+    // True if the form has an active Coinsnap feed.
+    public function form_has_coinsnap_feed($form): bool {
+        $form_id = (int) rgar($form, 'id');
+        if ($form_id < 1) {
+            return false;
+        }
+        foreach ((array) $this->get_feeds($form_id) as $feed) {
+            if (!empty($feed['is_active'])) {
+                return true;
+            }
+        }
+        return false;
     }
     
     public function pre_init() {        
