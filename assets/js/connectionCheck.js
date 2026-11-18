@@ -19,7 +19,6 @@ jQuery(function ($) {
     };
 
     jQuery.post( ajaxurl, data, function( response ){
-        console.log( 'Coinsnap connection check JSON:' + response );
         connectionCheckResponse = $.parseJSON(response);
         let resultClass = (connectionCheckResponse.result === true)? 'success' : 'error';
         
