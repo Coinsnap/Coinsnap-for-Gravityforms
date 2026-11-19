@@ -65,6 +65,7 @@ class CoinsnapGForm {
         }
         require_once (plugin_dir_path(__FILE__) . '/library/loader.php');	
         require_once (plugin_dir_path(__FILE__) . 'includes/BtcpayKey.php');
+        require_once (plugin_dir_path(__FILE__) . 'includes/InvoiceMetadata.php');
         require_once (plugin_dir_path(__FILE__) . 'includes/Webhook/Signature.php');
         require_once (plugin_dir_path(__FILE__) . 'includes/Webhook/InvoiceDecision.php');
         require_once (plugin_dir_path(__FILE__) . 'includes/Webhook/WebhookHandler.php');
