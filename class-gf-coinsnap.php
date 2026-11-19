@@ -731,13 +731,29 @@ class CoinsnapGF extends GFPaymentAddOn {
             $return_url = (!empty($this->_config['coinsnap_returnurl']))? $this->_config['coinsnap_returnurl'] : $this->return_url($form['id'], $entry['id']) . "&rm={$return_mode}";
             $invoice_no =  $entry['id'];
             
-            $metadata = [];
-            $metadata['orderNumber'] = $invoice_no;
-            $metadata['customerName'] = $buyerName;
-
-            if($this->get_payment_provider() === 'btcpay') {
-                $metadata['orderId'] = $invoice_no;
+            // orderId / orderNumber stay the entry ID: the webhook matches the invoice to the entry by it.
+            $mapped = [];
+            foreach (['billingInformation_email', 'billingInformation_full_name'] as $key) {
+                $fieldId = (string) rgar($feed['meta'] ?? [], $key);
+                if ($fieldId !== '') {
+                    $mapped[] = explode('.', $fieldId)[0];
+                }
             }
+            $metadata = \CoinsnapGF\InvoiceMetadata::forEntry([
+                'entry_id' => $invoice_no,
+                'form_id' => rgar($form, 'id'),
+                'form_title' => (string) rgar($form, 'title'),
+                'order_url' => admin_url('admin.php?page=gf_entries&view=entry&id=' . (int) rgar($form, 'id') . '&lid=' . (int) $invoice_no),
+                'page_url' => (string) rgar($entry, 'source_url'),
+                'version' => COINSNAPGF_VERSION,
+                'language' => function_exists('determine_locale') ? determine_locale() : get_locale(),
+                'name' => $buyerName,
+                'email' => $buyerEmail,
+                'mapped_field_ids' => $mapped,
+                'fields' => $this->metadataFields($form, $entry),
+                'line_items' => rgar($submission_data, 'line_items'),
+                'discounts' => rgar($submission_data, 'discounts'),
+            ]);
             
             if($this->get_payment_provider() === 'btcpay' && $currency !== 'BTC'){
                 $store = new \Coinsnap\Client\Store($this->getApiUrl(), $this->getApiKey());
@@ -817,6 +833,32 @@ class CoinsnapGF extends GFPaymentAddOn {
             }
             return false;
         }
+    }
+
+    // The form's fields with the entry's values as plain text, for the invoice metadata.
+    private function metadataFields($form, $entry): array {
+        $fields = [];
+        foreach ((array) rgar($form, 'fields') as $field) {
+            if (!is_object($field) || !isset($field->id)) {
+                continue;
+            }
+            $inputs = [];
+            foreach ((is_array($field->inputs ?? null) ? $field->inputs : []) as $input) {
+                if (isset($input['id'])) {
+                    $inputs[(string) $input['id']] = (string) rgar($entry, (string) $input['id']);
+                }
+            }
+            $fields[] = [
+                'id' => (string) $field->id,
+                'type' => (string) ($field->type ?? ''),
+                'input_type' => method_exists($field, 'get_input_type') ? (string) $field->get_input_type() : '',
+                'label' => (string) ($field->label ?? ''),
+                'value' => method_exists($field, 'get_value_export') ? $field->get_value_export($entry, (string) $field->id, true) : rgar($entry, (string) $field->id),
+                'inputs' => $inputs,
+                'admin_only' => ($field->visibility ?? '') === 'administrative' || !empty($field->adminOnly),
+            ];
+        }
+        return $fields;
     }
 
     public function return_url($form_id, $lead_id){
